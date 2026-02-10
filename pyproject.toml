@@ -1,0 +1,30 @@
+[project]
+name = "camping-agent"
+version = "0.1.0"
+description = "LLM-powered camping reservation search agent for California"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain-core>=0.3,<1",
+    "langgraph>=0.4,<1",
+    "langchain-anthropic>=0.3,<1",
+    "langchain-openai>=0.3,<1",
+    "langchain-google-genai>=2,<3",
+    "langchain-xai>=0.2,<1",
+    "geopy>=2.4,<3",
+    "httpx>=0.27,<1",
+    "playwright>=1.48,<2",
+    "python-dotenv>=1.0,<2",
+    "rich>=13,<14",
+    "pydantic>=2,<3",
+    "pydantic-settings>=2,<3",
+]
+
+[project.scripts]
+camping-agent = "camping_agent.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
