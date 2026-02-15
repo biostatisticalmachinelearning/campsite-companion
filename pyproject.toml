@@ -17,10 +17,13 @@ dependencies = [
     "rich>=13,<14",
     "pydantic>=2,<3",
     "pydantic-settings>=2,<3",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
 ]
 
 [project.scripts]
 camping-agent = "camping_agent.cli:main"
+camping-web = "camping_agent.web.app:main"
 
 [build-system]
 requires = ["setuptools>=68"]

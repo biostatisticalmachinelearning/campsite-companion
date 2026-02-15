@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camping Reservation Search</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #e94560;
+        }
+
+        header h1 { font-size: 1.5rem; color: #e94560; }
+        header p { color: #8899aa; font-size: 0.85rem; margin-top: 0.25rem; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .search-panel {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #0f3460;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: #8899aa;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: #e0e0e0;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus { outline: none; border-color: #e94560; }
+
+        .checkbox-group {
+            display: flex;
+            gap: 1.2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: #e0e0e0;
+            text-transform: none;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #e94560;
+        }
+
+        .radius-display { color: #e94560; font-weight: 600; min-width: 60px; text-align: right; }
+        input[type="range"] { flex: 1; accent-color: #e94560; height: 6px; }
+
+        .btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #c73e54; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+
+        .btn-row { display: flex; gap: 1rem; align-items: center; }
+        #status { color: #8899aa; font-size: 0.9rem; }
+
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2px solid #8899aa;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Results */
+        .results-panel {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #0f3460;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .results-header h2 { font-size: 1.1rem; color: #e94560; }
+        .results-count { color: #8899aa; font-size: 0.85rem; }
+
+        .errors {
+            background: #2a1a1e;
+            border: 1px solid #e94560;
+            border-radius: 6px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: #ff8899;
+        }
+
+        .no-results { text-align: center; padding: 3rem; color: #8899aa; }
+
+        /* Card-based results */
+        .result-card {
+            background: #1a1a2e;
+            border: 1px solid #0f346066;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .result-card:hover { border-color: #0f3460; }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title-area { flex: 1; min-width: 0; }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #e0e0e0;
+            margin-bottom: 0.2rem;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: #8899aa;
+        }
+
+        .card-distance { font-weight: 600; color: #53a8b6; }
+
+        .source-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .source-recreation_gov { background: #0f3460; color: #53a8b6; }
+        .source-reserve_california { background: #2a1a3e; color: #b68ddb; }
+
+        .book-link {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #e94560;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .book-link:hover { background: #e9456022; text-decoration: none; }
+
+        .card-description {
+            font-size: 0.82rem;
+            color: #8899aa;
+            line-height: 1.45;
+            margin-bottom: 0.6rem;
+        }
+
+        /* Site availability grid */
+        .sites-section {
+            border-top: 1px solid #0f346044;
+            padding-top: 0.5rem;
+        }
+
+        .sites-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #667;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .site-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 1fr) auto minmax(100px, 1fr);
+            gap: 0.5rem;
+            align-items: baseline;
+            padding: 3px 0;
+            border-bottom: 1px solid #0f346018;
+            font-size: 0.8rem;
+        }
+        .site-row:last-child { border-bottom: none; }
+
+        .site-name {
+            color: #ccd;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .site-type-tag {
+            font-size: 0.65rem;
+            color: #8899aa;
+            background: #16213e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .site-dates {
+            color: #8899aa;
+        }
+
+        .expand-toggle { cursor: pointer; padding: 4px 0; }
+        .expand-btn { color: #e94560; font-size: 0.75rem; font-weight: 600; }
+        .expand-btn:hover { text-decoration: underline; }
+
+        @media (max-width: 700px) {
+            .form-row { flex-direction: column; }
+            .form-group { min-width: auto; }
+            .card-header { flex-direction: column; }
+            .site-row { grid-template-columns: 1fr; gap: 0.15rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Camping Reservation Search</h1>
+        <p>Find available campsites across California &mdash; Recreation.gov &amp; ReserveCalifornia</p>
+    </header>
+
+    <div class="container">
+        <div class="search-panel">
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    <label>Location</label>
+                    <input type="text" id="location" placeholder="e.g. San Francisco, Yosemite, Big Sur" value="San Francisco">
+                </div>
+                <div class="form-group">
+                    <label>Radius</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="range" id="radius" min="10" max="500" value="150" step="10">
+                        <span class="radius-display" id="radiusDisplay">150 mi</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Check-in</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-group">
+                    <label>Check-out</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="form-group">
+                    <label>Group Size</label>
+                    <input type="number" id="numPeople" min="1" max="20" value="2">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Search Sources</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="chkRecGov" checked> Recreation.gov</label>
+                        <label><input type="checkbox" id="chkResCal"> ReserveCalifornia</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Exclude</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="exBoat" checked> Boat-in only</label>
+                        <label><input type="checkbox" id="exEquestrian" checked> Equestrian</label>
+                        <label><input type="checkbox" id="exDayUse" checked> Day use only</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Show Only (leave all unchecked to show all types)</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="incTent"> Tent / Car Camping</label>
+                        <label><input type="checkbox" id="incRV"> RV / Trailer</label>
+                        <label><input type="checkbox" id="incBackpacking"> Backpacking / Walk-in</label>
+                        <label><input type="checkbox" id="incLodging"> Cabins / Lodging</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn" id="searchBtn" onclick="doSearch()">Search Campsites</button>
+                <span id="status"></span>
+            </div>
+        </div>
+
+        <div class="results-panel" id="resultsPanel" style="display: none;">
+            <div class="results-header">
+                <h2>Available Campsites</h2>
+                <span class="results-count" id="resultsCount"></span>
+            </div>
+            <div id="errors"></div>
+            <div id="resultsBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const today = new Date();
+        const daysUntilFri = (5 - today.getDay() + 7) % 7 || 7;
+        const friday = new Date(today);
+        friday.setDate(today.getDate() + daysUntilFri);
+        const sunday = new Date(friday);
+        sunday.setDate(friday.getDate() + 2);
+        document.getElementById('startDate').value = toISO(friday);
+        document.getElementById('endDate').value = toISO(sunday);
+
+        document.getElementById('radius').addEventListener('input', (e) => {
+            document.getElementById('radiusDisplay').textContent = e.target.value + ' mi';
+        });
+        document.querySelectorAll('input').forEach(el => {
+            el.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+        });
+
+        function toISO(d) { return d.toISOString().split('T')[0]; }
+
+        let allResults = [];
+        let searchLocation = '';
+
+        async function doSearch() {
+            const btn = document.getElementById('searchBtn');
+            const status = document.getElementById('status');
+            const panel = document.getElementById('resultsPanel');
+            const errDiv = document.getElementById('errors');
+            const body = document.getElementById('resultsBody');
+            const count = document.getElementById('resultsCount');
+
+            const location = document.getElementById('location').value.trim();
+            if (!location) { alert('Please enter a location.'); return; }
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            if (!startDate || !endDate) { alert('Please select dates.'); return; }
+            const recGov = document.getElementById('chkRecGov').checked;
+            const resCal = document.getElementById('chkResCal').checked;
+            if (!recGov && !resCal) { alert('Select at least one search source.'); return; }
+
+            allResults = [];
+            searchLocation = location;
+            btn.disabled = true;
+            status.innerHTML = '<span class="spinner"></span>Starting search...';
+            errDiv.innerHTML = '';
+            body.innerHTML = '';
+            count.textContent = '';
+            panel.style.display = 'block';
+
+            const payload = JSON.stringify({
+                location, radius_miles: parseFloat(document.getElementById('radius').value),
+                start_date: startDate, end_date: endDate,
+                num_people: parseInt(document.getElementById('numPeople').value),
+                search_recreation_gov: recGov, search_reserve_california: resCal,
+                exclude_boat_in: document.getElementById('exBoat').checked,
+                exclude_equestrian: document.getElementById('exEquestrian').checked,
+                exclude_day_use: document.getElementById('exDayUse').checked,
+                include_tent: document.getElementById('incTent').checked,
+                include_rv: document.getElementById('incRV').checked,
+                include_backpacking: document.getElementById('incBackpacking').checked,
+                include_lodging: document.getElementById('incLodging').checked,
+            });
+
+            try {
+                const resp = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Search failed');
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    let eventType = null;
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            eventType = line.slice(7).trim();
+                        } else if (line.startsWith('data: ') && eventType) {
+                            handleSSE(eventType, JSON.parse(line.slice(6)));
+                            eventType = null;
+                        }
+                    }
+                }
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                status.style.color = '#e94560';
+            } finally {
+                btn.disabled = false;
+                const st = document.getElementById('status');
+                if (!st.style.color) st.innerHTML = '';
+            }
+        }
+
+        function handleSSE(event, data) {
+            const status = document.getElementById('status');
+            const errDiv = document.getElementById('errors');
+            const count = document.getElementById('resultsCount');
+
+            switch (event) {
+                case 'meta':
+                    searchLocation = data.search_center?.location || searchLocation;
+                    break;
+                case 'status':
+                    status.innerHTML = '<span class="spinner"></span>' + escapeHtml(data.message);
+                    break;
+                case 'progress':
+                    status.innerHTML = '<span class="spinner"></span>' +
+                        `Checked ${data.checked}/${data.total} campgrounds, found ${data.found} with availability`;
+                    break;
+                case 'result':
+                    allResults.push(data);
+                    allResults.sort((a, b) => (a.distance_miles || 9999) - (b.distance_miles || 9999));
+                    renderCards();
+                    count.textContent = allResults.length + ' campground' +
+                        (allResults.length !== 1 ? 's' : '') + ' found near ' + escapeHtml(searchLocation);
+                    break;
+                case 'error':
+                    errDiv.innerHTML += '<div class="errors">' + escapeHtml(data.message) + '</div>';
+                    break;
+                case 'done':
+                    status.innerHTML = '';
+                    if (allResults.length === 0) {
+                        document.getElementById('resultsBody').innerHTML =
+                            '<div class="no-results">No available campsites found. Try adjusting your dates, location, or radius.</div>';
+                    }
+                    break;
+            }
+        }
+
+        function renderCards() {
+            const body = document.getElementById('resultsBody');
+            if (!body) return;
+            let html = '';
+            allResults.forEach((site, i) => {
+                const sourceClass = 'source-' + (site.source || '');
+                const sourceName = site.source === 'recreation_gov' ? 'Rec.gov' : 'CA State';
+
+                // Build per-site availability
+                let siteHtml = '';
+                const siteAvail = site.site_availability || [];
+                if (siteAvail.length > 0) {
+                    const previewCount = 5;
+                    const uid = 'sites-' + i;
+                    siteAvail.forEach((s, si) => {
+                        const dates = (s.available_dates || []).map(d => d.slice(5));
+                        let dateStr = dates.join(', ');
+                        const typeTag = s.site_type
+                            ? '<span class="site-type-tag">' + escapeHtml(s.site_type) + '</span>'
+                            : '';
+                        const hidden = si >= previewCount ? ' style="display:none" data-expand="' + uid + '"' : '';
+                        siteHtml += '<div class="site-row"' + hidden + '>' +
+                            '<span class="site-name">' + escapeHtml(s.site_name) + '</span>' +
+                            typeTag +
+                            '<span class="site-dates">' + escapeHtml(dateStr) + '</span></div>';
+                    });
+                    if (siteAvail.length > previewCount) {
+                        siteHtml += '<div class="expand-toggle" id="toggle-' + uid +
+                            '" onclick="toggleSites(\'' + uid + '\', ' + siteAvail.length + ')">' +
+                            '<span class="expand-btn">Show all ' + siteAvail.length + ' sites &#9662;</span></div>';
+                    }
+                } else {
+                    const dates = (site.available_dates || []).map(d => d.slice ? d.slice(5) : d);
+                    siteHtml = '<div class="site-dates">' + escapeHtml(dates.join(', ') || 'No dates') + '</div>';
+                }
+
+                const desc = stripHtml(site.description || '');
+                html += '<div class="result-card">' +
+                    '<div class="card-header">' +
+                        '<div class="card-title-area">' +
+                            '<div class="card-title">' + escapeHtml(site.name) + '</div>' +
+                            '<div class="card-meta">' +
+                                (site.distance_miles != null
+                                    ? '<span class="card-distance">' + site.distance_miles + ' mi</span>'
+                                    : '') +
+                                '<span class="source-badge ' + sourceClass + '">' + sourceName + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        (site.reservation_url
+                            ? '<a class="book-link" href="' + escapeHtml(site.reservation_url) + '" target="_blank" rel="noopener">Book &rarr;</a>'
+                            : '') +
+                    '</div>' +
+                    (desc ? '<div class="card-description">' + escapeHtml(desc) + '</div>' : '') +
+                    '<div class="sites-section">' +
+                        '<div class="sites-label">Available Sites (' + siteAvail.length + ')</div>' +
+                        siteHtml +
+                    '</div>' +
+                '</div>';
+            });
+            body.innerHTML = html;
+        }
+
+        function toggleSites(uid, total) {
+            const rows = document.querySelectorAll('[data-expand="' + uid + '"]');
+            const toggle = document.getElementById('toggle-' + uid);
+            const isHidden = rows[0]?.style.display === 'none';
+            rows.forEach(r => r.style.display = isHidden ? 'grid' : 'none');
+            if (toggle) {
+                toggle.querySelector('.expand-btn').innerHTML = isHidden
+                    ? 'Show fewer &#9652;'
+                    : 'Show all ' + total + ' sites &#9662;';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (str == null) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function stripHtml(str) {
+            const div = document.createElement('div');
+            div.innerHTML = str;
+            return div.textContent || '';
+        }
+    </script>
+</body>
+</html>

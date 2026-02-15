@@ -9,6 +9,12 @@ class SearchSource(str, Enum):
     RESERVE_CALIFORNIA = "reserve_california"
 
 
+class SiteAvailability(BaseModel):
+    site_name: str
+    site_type: str = ""
+    available_dates: list[date] = []
+
+
 class Campsite(BaseModel):
     name: str
     facility_id: str
@@ -17,6 +23,7 @@ class Campsite(BaseModel):
     longitude: float | None = None
     distance_miles: float | None = None
     available_dates: list[date] = []
+    site_availability: list[SiteAvailability] = []
     description: str = ""
     reservation_url: str = ""
     campsite_type: str = ""
