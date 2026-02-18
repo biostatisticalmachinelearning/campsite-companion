@@ -110,7 +110,7 @@ async def build_recgov_catalog() -> list[CatalogPark]:
                             "size": page_size,
                             "start": start,
                         },
-                        headers={"User-Agent": "camping-reservation-agent/0.1"},
+                        headers={"User-Agent": "campsite-companion/0.1"},
                     )
                     resp.raise_for_status()
                     data = resp.json()

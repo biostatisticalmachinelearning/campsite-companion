@@ -1,8 +1,8 @@
 #!/bin/bash
-# Quick setup script for Camping Reservation Search
+# Quick setup script for Campsite Companion
 set -e
 
-echo "=== Camping Reservation Search Setup ==="
+echo "=== Campsite Companion Setup ==="
 echo ""
 
 # Check Python version

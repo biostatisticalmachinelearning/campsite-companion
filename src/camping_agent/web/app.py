@@ -28,7 +28,7 @@ from camping_agent.models import Campsite, SearchSource, SiteAvailability
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="Camping Reservation Search")
+app = FastAPI(title="Campsite Companion")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -757,7 +757,7 @@ def main():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    logger.info("Starting Camping Reservation Search at http://localhost:8000")
+    logger.info("Starting Campsite Companion at http://localhost:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

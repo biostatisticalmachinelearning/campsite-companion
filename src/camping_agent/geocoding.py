@@ -42,7 +42,7 @@ def geocode(location: str) -> tuple[float, float]:
 
     logger.debug("Geocode Nominatim lookup: %r", location)
     try:
-        geolocator = Nominatim(user_agent="camping-reservation-agent")
+        geolocator = Nominatim(user_agent="campsite-companion")
         result = geolocator.geocode(f"{location}, California, USA")
         if result:
             return (result.latitude, result.longitude)

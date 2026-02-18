@@ -1,4 +1,4 @@
-# Camping Reservation Search
+# Campsite Companion
 
 A web app that searches for available campsites across **Recreation.gov** (national parks, forests, BLM land) and **ReserveCalifornia** (California state parks). It streams results in real-time as each campground is checked, so you see availability as soon as it's found.
 
@@ -24,7 +24,7 @@ There's a setup script that handles everything:
 
 ```bash
 git clone <repo-url>
-cd camping-reservations-agent
+cd campsite-companion
 bash setup.sh
 ```
 
@@ -34,7 +34,7 @@ The script creates a virtual environment, installs dependencies, sets up your `.
 
 ```bash
 git clone <repo-url>
-cd camping-reservations-agent
+cd campsite-companion
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
@@ -105,7 +105,7 @@ The search checks one month at a time and stops as soon as it finds availability
 ## Project Structure
 
 ```
-camping-reservations-agent/
+campsite-companion/
   .env.example          # Template for environment variables
   pyproject.toml        # Python package config and dependencies
   setup.sh              # Automated setup script

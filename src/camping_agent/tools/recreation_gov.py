@@ -177,7 +177,7 @@ async def _search_campgrounds(
                     "size": page_size,
                     "start": start,
                 },
-                headers={"User-Agent": "camping-reservation-agent/0.1"},
+                headers={"User-Agent": "campsite-companion/0.1"},
             )
             resp.raise_for_status()
             data = resp.json()
@@ -228,7 +228,7 @@ async def _check_availability(facility_id: str, month_start: date) -> dict:
             resp = await client.get(
                 url,
                 params={"start_date": date_str},
-                headers={"User-Agent": "Mozilla/5.0 (compatible; camping-agent/0.1)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; campsite-companion/0.1)"},
             )
             if resp.status_code == 429:
                 logger.warning("Recreation.gov rate limit hit (429) for facility %s", facility_id)

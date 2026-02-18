@@ -1,5 +1,5 @@
 [project]
-name = "camping-agent"
+name = "campsite-companion"
 version = "0.1.0"
 description = "Web app for searching camping availability across Recreation.gov and ReserveCalifornia"
 requires-python = ">=3.10"

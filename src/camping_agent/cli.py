@@ -66,7 +66,7 @@ async def _run_loop(graph, config):
 def main():
     console.print(
         Panel(
-            "[bold]Camping Reservation Search Agent[/]\n"
+            "[bold]Campsite Companion[/]\n"
             "Find and book campsites across California.\n"
             'Type "quit" to exit.',
             style="green",
