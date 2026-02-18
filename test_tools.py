@@ -2,8 +2,6 @@
 
 Usage:
     .venv/bin/python test_tools.py
-
-Requires RIDB_API_KEY in .env file.
 """
 
 import asyncio
@@ -42,11 +40,6 @@ async def main():
     console.print(f"  Dates: {start} to {end}")
     console.print(f"  Radius: {radius} miles")
     console.print(f"  Group size: {num_people}")
-
-    if not settings.ridb_api_key or settings.ridb_api_key == "your_recreation_gov_api_key":
-        console.print("\n[bold red]Error:[/] RIDB_API_KEY not set in .env")
-        console.print("Get one at https://ridb.recreation.gov/")
-        return
 
     # Step 3: Search Recreation.gov
     console.print(f"\n[bold cyan]Step 3: Searching Recreation.gov...[/]")

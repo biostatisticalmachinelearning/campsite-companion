@@ -151,7 +151,7 @@ async def _search_campgrounds(
     """Search Recreation.gov for campgrounds near coordinates.
 
     Uses the Recreation.gov website search API which has far more
-    complete data than the RIDB facilities endpoint.
+    complete data than the RIDB facilities endpoint (which requires an API key).
     Paginates to get all results within range.
 
     exclude: categories to remove, e.g. {"boat_in", "equestrian", "day_use"}

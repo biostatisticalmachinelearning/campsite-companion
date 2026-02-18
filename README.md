@@ -16,7 +16,6 @@ A web app that searches for available campsites across **Recreation.gov** (natio
 ## Prerequisites
 
 - **Python 3.10+**
-- **A Recreation.gov RIDB API key** (free) -- get one at https://ridb.recreation.gov/. This is required for building the park catalog. The campsite availability search itself uses a public API that doesn't require a key.
 
 ## Quick Start
 
@@ -40,23 +39,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
-### 2. Set up your environment
-
-Copy the example environment file and add your API key:
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in your Recreation.gov RIDB API key:
-
-```
-RIDB_API_KEY=your-actual-api-key-here
-```
-
-The other API keys (Anthropic, OpenAI, etc.) are only needed if you want to use the CLI chat agent, not the web app.
-
-### 3. Build the park catalog
+### 2. Build the park catalog
 
 This step downloads the list of all parks/campgrounds from both Recreation.gov and ReserveCalifornia, including facility metadata for California state parks. It takes about 5 minutes and only needs to be run once (the server will automatically rebuild it in the background if it becomes older than 14 days):
 
@@ -68,7 +51,7 @@ This creates two JSON files in the `data/` directory:
 - `data/catalog_recgov.json` (~4,600 campgrounds)
 - `data/catalog_rca.json` (~110 California state parks, with facility IDs)
 
-### 4. Start the web server
+### 3. Start the web server
 
 ```bash
 camping-web
