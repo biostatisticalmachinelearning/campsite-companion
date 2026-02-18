@@ -32,3 +32,19 @@ class Campsite(BaseModel):
 class SearchResults(BaseModel):
     campsites: list[Campsite] = []
     errors: list[str] = []
+
+
+class CatalogFacility(BaseModel):
+    id: str
+    name: str
+
+
+class CatalogPark(BaseModel):
+    id: str
+    name: str
+    source: SearchSource
+    latitude: float | None = None
+    longitude: float | None = None
+    description: str = ""
+    reservation_url: str = ""
+    facilities: list[CatalogFacility] | None = None

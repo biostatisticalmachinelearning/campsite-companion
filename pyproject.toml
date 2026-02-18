@@ -1,7 +1,7 @@
 [project]
 name = "camping-agent"
 version = "0.1.0"
-description = "LLM-powered camping reservation search agent for California"
+description = "Web app for searching camping availability across Recreation.gov and ReserveCalifornia"
 requires-python = ">=3.10"
 dependencies = [
     "langchain-core>=0.3,<1",
@@ -24,6 +24,7 @@ dependencies = [
 [project.scripts]
 camping-agent = "camping_agent.cli:main"
 camping-web = "camping_agent.web.app:main"
+build-catalog = "camping_agent.catalog:main"
 
 [build-system]
 requires = ["setuptools>=68"]

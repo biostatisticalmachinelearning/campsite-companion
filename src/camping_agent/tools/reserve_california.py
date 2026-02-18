@@ -109,8 +109,15 @@ async def search_rca_api(
     num_people: int,
     exclude: set[str] | None = None,
     include: set[str] | None = None,
+    catalog_parks: list[dict] | None = None,
 ) -> AsyncIterator[dict]:
-    """Async generator that yields campsite results using the RCA API."""
+    """Async generator that yields campsite results using the RCA API.
+
+    If catalog_parks is provided, uses those parks (with pre-loaded facility IDs)
+    instead of calling the search/place API for discovery and per-park facility lookup.
+    Each dict should have: entity_id, name, latitude, longitude, description,
+    _distance_miles, and optionally _catalog_facilities (list of {id, name}).
+    """
     exclude = exclude or set()
     include = include or set()
     nights = (end - start).days
@@ -120,95 +127,128 @@ async def search_rca_api(
     api_end = (end - timedelta(days=1)).isoformat()
 
     async with httpx.AsyncClient(timeout=30) as client:
-        # Step 1: Search for nearby parks with availability
-        search_resp = await client.post(
-            f"{RCA_API_BASE}/search/place",
-            json={
-                "PlaceId": 0,
-                "Latitude": lat,
-                "Longitude": lon,
-                "StartDate": start.isoformat(),
-                "EndDate": api_end,
-                "Nights": nights,
-                "CountNearby": True,
-                "NearbyLimit": 100,
-                "NearbyOnlyAvailable": True,
-                "Sort": "distance",
-                "CustomerAccountId": 0,
-                "IsADA": False,
-                "UnitCategoryId": 0,
-                "SleepingUnitId": 0,
-                "MinVehicleLength": 0,
-            },
-        )
-        search_resp.raise_for_status()
-        data = search_resp.json()
+        # Build park list: either from catalog or from live API search
+        if catalog_parks is not None:
+            parks_to_check = []
+            for cp in catalog_parks:
+                parks_to_check.append({
+                    "place_id": int(cp["entity_id"]),
+                    "name": cp["name"],
+                    "lat": cp.get("latitude"),
+                    "lon": cp.get("longitude"),
+                    "dist": cp.get("_distance_miles"),
+                    "description": cp.get("description", ""),
+                    "catalog_facilities": cp.get("_catalog_facilities"),
+                })
+        else:
+            # Step 1: Search for nearby parks with availability
+            search_resp = await client.post(
+                f"{RCA_API_BASE}/search/place",
+                json={
+                    "PlaceId": 0,
+                    "Latitude": lat,
+                    "Longitude": lon,
+                    "StartDate": start.isoformat(),
+                    "EndDate": api_end,
+                    "Nights": nights,
+                    "CountNearby": True,
+                    "NearbyLimit": 100,
+                    "NearbyOnlyAvailable": True,
+                    "Sort": "distance",
+                    "CustomerAccountId": 0,
+                    "IsADA": False,
+                    "UnitCategoryId": 0,
+                    "SleepingUnitId": 0,
+                    "MinVehicleLength": 0,
+                },
+            )
+            search_resp.raise_for_status()
+            data = search_resp.json()
 
-        nearby = data.get("NearbyPlaces", [])
-        if not nearby:
-            return
+            nearby = data.get("NearbyPlaces", [])
+            if not nearby:
+                return
 
-        # Step 2: For each park, query it directly to get Facilities
-        for park in nearby:
-            place_id = park.get("PlaceId")
-            name = park.get("Name", "Unknown")
-            park_lat = park.get("Latitude")
-            park_lon = park.get("Longitude")
+            parks_to_check = []
+            for park in nearby:
+                place_id = park.get("PlaceId")
+                if not place_id:
+                    continue
+                park_lat = park.get("Latitude")
+                park_lon = park.get("Longitude")
+                dist = None
+                if park_lat and park_lon:
+                    dist = round(
+                        distance_miles((lat, lon), (park_lat, park_lon)), 1
+                    )
+                    if dist > radius:
+                        continue
+                parks_to_check.append({
+                    "place_id": place_id,
+                    "name": park.get("Name", "Unknown"),
+                    "lat": park_lat,
+                    "lon": park_lon,
+                    "dist": dist,
+                    "description": park.get("Description", ""),
+                    "catalog_facilities": None,
+                })
 
-            if not place_id:
-                continue
+        # Step 2: For each park, get facilities and check availability
+        for park_info in parks_to_check:
+            place_id = park_info["place_id"]
+            name = park_info["name"]
+            park_lat = park_info["lat"]
+            park_lon = park_info["lon"]
+            dist = park_info["dist"]
+            description = park_info["description"]
+            catalog_facs = park_info.get("catalog_facilities")
 
-            # Calculate distance
-            dist = None
-            if park_lat and park_lon:
-                dist = round(
-                    distance_miles((lat, lon), (park_lat, park_lon)), 1
-                )
-                if dist > radius:
+            if catalog_facs is not None:
+                # Use catalog facility IDs — skip place API call entirely.
+                # We only need the facility IDs to call grid API.
+                facility_ids = {str(f["id"]): f["name"] for f in catalog_facs}
+            else:
+                # No catalog data — query park directly to get Facilities
+                try:
+                    place_resp = await client.post(
+                        f"{RCA_API_BASE}/search/place",
+                        json={
+                            "PlaceId": place_id,
+                            "Latitude": park_lat or lat,
+                            "Longitude": park_lon or lon,
+                            "StartDate": start.isoformat(),
+                            "EndDate": api_end,
+                            "Nights": nights,
+                            "CountNearby": False,
+                            "NearbyLimit": 0,
+                            "Sort": "distance",
+                            "CustomerAccountId": 0,
+                            "IsADA": False,
+                            "UnitCategoryId": 0,
+                            "SleepingUnitId": 0,
+                            "MinVehicleLength": 0,
+                        },
+                    )
+                    place_resp.raise_for_status()
+                    place_data = place_resp.json()
+                except Exception:
                     continue
 
-            # Query park directly to get Facilities (NearbyPlaces doesn't include them)
-            try:
-                place_resp = await client.post(
-                    f"{RCA_API_BASE}/search/place",
-                    json={
-                        "PlaceId": place_id,
-                        "Latitude": park_lat or lat,
-                        "Longitude": park_lon or lon,
-                        "StartDate": start.isoformat(),
-                        "EndDate": api_end,
-                        "Nights": nights,
-                        "CountNearby": False,
-                        "NearbyLimit": 0,
-                        "Sort": "distance",
-                        "CustomerAccountId": 0,
-                        "IsADA": False,
-                        "UnitCategoryId": 0,
-                        "SleepingUnitId": 0,
-                        "MinVehicleLength": 0,
-                    },
-                )
-                place_resp.raise_for_status()
-                place_data = place_resp.json()
-            except Exception:
-                continue
-
-            selected = place_data.get("SelectedPlace", {})
-            facilities = selected.get("Facilities", {})
-            if not isinstance(facilities, dict):
-                continue
-
-            # Use description from detailed response if available
-            description = selected.get("Description", "") or park.get("Description", "")
+                selected = place_data.get("SelectedPlace", {})
+                facilities_raw = selected.get("Facilities", {})
+                if not isinstance(facilities_raw, dict):
+                    continue
+                facility_ids = {
+                    str(fac_id): fac.get("Name", "")
+                    for fac_id, fac in facilities_raw.items()
+                    if fac.get("Available")
+                }
+                description = selected.get("Description", "") or description
 
             all_site_avail: list[SiteAvailability] = []
             all_dates: set[date] = set()
 
-            for fac_id, fac in facilities.items():
-                if not fac.get("Available"):
-                    continue
-
-                fac_name = fac.get("Name", "")
+            for fac_id, fac_name in facility_ids.items():
 
                 try:
                     grid_resp = await client.post(

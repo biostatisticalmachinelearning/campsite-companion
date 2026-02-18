@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Available Date Finder</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #e94560;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { font-size: 1.5rem; color: #e94560; }
+        header p { color: #8899aa; font-size: 0.85rem; margin-top: 0.25rem; }
+
+        .nav-link {
+            color: #53a8b6;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #53a8b6;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .nav-link:hover { background: #53a8b622; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .panel {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #0f3460;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            color: #e94560;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+
+        /* Park search + list */
+        .park-search {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .park-search input {
+            flex: 1;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: #e0e0e0;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        .park-search input:focus { outline: none; border-color: #e94560; }
+
+        .park-list-info {
+            font-size: 0.8rem;
+            color: #8899aa;
+            margin-bottom: 0.5rem;
+        }
+
+        .park-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #0f346066;
+            border-radius: 8px;
+        }
+
+        .park-item {
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            border-bottom: 1px solid #0f346033;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .park-item:hover { background: #1a1a2e; }
+        .park-item.selected { background: #0f3460; border-color: #e94560; }
+        .park-item:last-child { border-bottom: none; }
+
+        .park-name { font-size: 0.9rem; font-weight: 600; }
+        .park-item.selected .park-name { color: #e94560; }
+
+        .source-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .source-recreation_gov { background: #0f3460; color: #53a8b6; }
+        .source-reserve_california { background: #2a1a3e; color: #b68ddb; }
+
+        /* Letter index */
+        .letter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-bottom: 0.75rem;
+        }
+        .letter-btn {
+            background: #1a1a2e;
+            border: 1px solid #0f346066;
+            color: #8899aa;
+            padding: 0.2rem 0.45rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .letter-btn:hover { border-color: #e94560; color: #e0e0e0; }
+        .letter-btn.active { background: #e94560; color: white; border-color: #e94560; }
+
+        /* Options panel */
+        .options-panel { display: none; }
+
+        .selected-park-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e0e0e0;
+            margin-bottom: 1rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: #8899aa;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: #e0e0e0;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .radio-group input[type="radio"] {
+            accent-color: #e94560;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: #e94560;
+            height: 6px;
+            min-width: 150px;
+        }
+
+        .slider-value { color: #e94560; font-weight: 600; min-width: 50px; }
+
+        .btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #c73e54; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+
+        .btn-row { display: flex; gap: 1rem; align-items: center; }
+        #searchStatus { color: #8899aa; font-size: 0.9rem; }
+
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2px solid #8899aa;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Progress bar */
+        .progress-bar-bg {
+            background: #1a1a2e;
+            border-radius: 6px;
+            height: 8px;
+            width: 100%;
+            margin: 0.5rem 0;
+            display: none;
+        }
+        .progress-bar-fill {
+            background: #e94560;
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* Results */
+        .results-panel { display: none; }
+
+        .found-card {
+            background: #1a1a2e;
+            border: 1px solid #0f346066;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .found-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #53a8b6;
+            margin-bottom: 0.75rem;
+        }
+
+        .found-dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .date-chip {
+            background: #0f3460;
+            color: #53a8b6;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .date-chip.weekend { background: #2a1a3e; color: #b68ddb; }
+
+        .sites-section {
+            border-top: 1px solid #0f346044;
+            padding-top: 0.5rem;
+        }
+
+        .sites-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #667;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .site-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 1fr) auto minmax(100px, 1fr);
+            gap: 0.5rem;
+            align-items: baseline;
+            padding: 3px 0;
+            border-bottom: 1px solid #0f346018;
+            font-size: 0.8rem;
+        }
+        .site-row:last-child { border-bottom: none; }
+
+        .site-name { color: #ccd; font-weight: 600; word-break: break-word; }
+
+        .site-type-tag {
+            font-size: 0.65rem;
+            color: #8899aa;
+            background: #16213e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .site-dates { color: #8899aa; }
+
+        .expand-toggle { cursor: pointer; padding: 4px 0; }
+        .expand-btn { color: #e94560; font-size: 0.75rem; font-weight: 600; }
+        .expand-btn:hover { text-decoration: underline; }
+
+        .not-found {
+            text-align: center;
+            padding: 2rem;
+            color: #8899aa;
+            font-size: 0.95rem;
+        }
+
+        .book-link {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #e94560;
+            border-radius: 5px;
+            transition: background 0.2s;
+            display: inline-block;
+            margin-top: 0.75rem;
+        }
+        .book-link:hover { background: #e9456022; }
+
+        .errors {
+            background: #2a1a1e;
+            border: 1px solid #e94560;
+            border-radius: 6px;
+            padding: 0.8rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #ff8899;
+        }
+
+        /* Drill-down selectors */
+        .drilldown-panel { display: none; }
+
+        .drilldown-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .drilldown-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .drilldown-group label {
+            font-size: 0.8rem;
+            color: #8899aa;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .drilldown-group select {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: #e0e0e0;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .drilldown-group select:focus { outline: none; border-color: #e94560; }
+
+        .site-filter-input {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            color: #e0e0e0;
+            padding: 0.5rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: 100%;
+            margin-bottom: 0.4rem;
+        }
+        .site-filter-input:focus { outline: none; border-color: #e94560; }
+
+        .site-checkbox-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #0f346066;
+            border-radius: 6px;
+            background: #1a1a2e;
+        }
+        .site-checkbox-list::-webkit-scrollbar { width: 6px; }
+        .site-checkbox-list::-webkit-scrollbar-track { background: #1a1a2e; }
+        .site-checkbox-list::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+
+        .site-cb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.6rem;
+            font-size: 0.82rem;
+            border-bottom: 1px solid #0f346022;
+            cursor: pointer;
+        }
+        .site-cb-item:hover { background: #16213e; }
+        .site-cb-item:last-child { border-bottom: none; }
+        .site-cb-item input[type="checkbox"] { accent-color: #e94560; flex-shrink: 0; }
+        .site-cb-item .site-cb-type { color: #667; font-size: 0.7rem; margin-left: auto; }
+
+        .site-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+        .site-action-btn {
+            background: none;
+            border: 1px solid #0f3460;
+            color: #53a8b6;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .site-action-btn:hover { background: #0f346033; }
+
+        .site-selected-count {
+            font-size: 0.75rem;
+            color: #e94560;
+            font-weight: 600;
+            margin-left: auto;
+            align-self: center;
+        }
+
+        .drilldown-loading {
+            font-size: 0.85rem;
+            color: #8899aa;
+            padding: 0.5rem 0;
+        }
+
+        .no-catalog {
+            text-align: center;
+            padding: 2rem;
+            color: #8899aa;
+        }
+        .no-catalog code {
+            background: #0f3460;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        /* Scrollbar */
+        .park-list::-webkit-scrollbar { width: 8px; }
+        .park-list::-webkit-scrollbar-track { background: #16213e; }
+        .park-list::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 4px; }
+        .park-list::-webkit-scrollbar-thumb:hover { background: #e94560; }
+
+        @media (max-width: 700px) {
+            .form-row { flex-direction: column; }
+            .park-search { flex-direction: column; }
+            header { flex-direction: column; gap: 0.5rem; }
+            .site-row { grid-template-columns: 1fr; gap: 0.15rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Next Available Date Finder</h1>
+            <p>Find the next open date for a specific park or campground</p>
+        </div>
+        <a class="nav-link" href="/">&larr; Campsite Search</a>
+    </header>
+
+    <div class="container">
+        <!-- Park Selection -->
+        <div class="panel" id="parkPanel">
+            <div class="panel-title">1. Select a Park</div>
+            <div class="park-search">
+                <input type="text" id="parkSearchInput" placeholder="Search parks by name..." oninput="debouncedSearch()">
+            </div>
+            <div class="letter-bar" id="letterBar"></div>
+            <div class="park-list-info" id="parkListInfo"></div>
+            <div class="park-list" id="parkList"></div>
+        </div>
+
+        <!-- Drill-down -->
+        <div class="panel drilldown-panel" id="drilldownPanel">
+            <div class="panel-title">2. Narrow Down (Optional)</div>
+            <div class="drilldown-loading" id="drilldownLoading">
+                <span class="spinner"></span>Loading campgrounds &amp; sites...
+            </div>
+            <div id="drilldownControls" style="display: none;">
+                <div class="drilldown-row">
+                    <div class="drilldown-group" id="facilityGroup" style="display: none;">
+                        <label>Campground / Facility</label>
+                        <select id="facilitySelect" onchange="onFacilityChange()">
+                            <option value="">All campgrounds</option>
+                        </select>
+                    </div>
+                    <div class="drilldown-group" style="flex: 2;">
+                        <label>Sites <span class="site-selected-count" id="siteSelectedCount"></span></label>
+                        <input type="text" class="site-filter-input" id="siteFilterInput"
+                            placeholder="Filter sites by name..." oninput="filterSiteCheckboxes()">
+                        <div class="site-actions">
+                            <button class="site-action-btn" onclick="selectAllVisibleSites()">Select visible</button>
+                            <button class="site-action-btn" onclick="clearAllSites()">Clear all</button>
+                        </div>
+                        <div class="site-checkbox-list" id="siteCheckboxList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="panel options-panel" id="optionsPanel">
+            <div class="panel-title">3. Configure Search</div>
+            <div class="selected-park-name" id="selectedParkName"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Days of Week</label>
+                    <div class="radio-group">
+                        <label><input type="checkbox" class="day-cb" value="0"> Mon</label>
+                        <label><input type="checkbox" class="day-cb" value="1"> Tue</label>
+                        <label><input type="checkbox" class="day-cb" value="2"> Wed</label>
+                        <label><input type="checkbox" class="day-cb" value="3"> Thu</label>
+                        <label><input type="checkbox" class="day-cb" value="4" checked> Fri</label>
+                        <label><input type="checkbox" class="day-cb" value="5" checked> Sat</label>
+                        <label><input type="checkbox" class="day-cb" value="6" checked> Sun</label>
+                    </div>
+                    <div style="margin-top: 0.4rem;">
+                        <button class="site-action-btn" onclick="setDayPreset('weekend')">Fri&ndash;Sun</button>
+                        <button class="site-action-btn" onclick="setDayPreset('long')">Fri&ndash;Mon</button>
+                        <button class="site-action-btn" onclick="setDayPreset('all')">All days</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Lookahead</label>
+                    <div class="slider-group">
+                        <input type="range" id="lookahead" min="1" max="12" value="6" oninput="updateLookahead()">
+                        <span class="slider-value" id="lookaheadValue">6 months</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <label style="text-transform: none; letter-spacing: 0; font-size: 0.85rem; color: #e0e0e0; cursor: pointer;">
+                        <input type="checkbox" id="searchAllMonths" style="accent-color: #e94560;"> Search all months (don't stop at first result)
+                    </label>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn" id="findBtn" onclick="findNextAvailable()">Find Next Available Date</button>
+                <span id="searchStatus"></span>
+            </div>
+
+            <div class="progress-bar-bg" id="progressBar">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="panel results-panel" id="resultsPanel">
+            <div class="panel-title">Results</div>
+            <div id="resultsBody"></div>
+        </div>
+    </div>
+
+    <script>
+        let allParks = [];
+        let filteredParks = [];
+        let selectedPark = null;
+        let searchTimeout = null;
+        let activeLetter = null;
+        let parkChildren = null; // cached children data for selected park
+        let allSiteItems = []; // [{name, type}] for current park/facility
+
+        // Load catalog on page load
+        loadCatalog();
+
+        let foundCount = 0; // track found results for unique IDs
+
+        function setDayPreset(preset) {
+            const cbs = document.querySelectorAll('.day-cb');
+            cbs.forEach(cb => cb.checked = false);
+            if (preset === 'weekend') {
+                [4, 5, 6].forEach(v => { cbs[v].checked = true; });
+            } else if (preset === 'long') {
+                [0, 4, 5, 6].forEach(v => { cbs[v].checked = true; });
+            } else {
+                cbs.forEach(cb => cb.checked = true);
+            }
+        }
+
+        function updateLookahead() {
+            const v = document.getElementById('lookahead').value;
+            document.getElementById('lookaheadValue').textContent = v + ' month' + (v !== '1' ? 's' : '');
+        }
+
+        async function loadCatalog(q) {
+            const url = q ? '/api/catalog?q=' + encodeURIComponent(q) : '/api/catalog';
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (!q) {
+                    allParks = data.parks;
+                }
+                filteredParks = data.parks;
+                renderParkList(filteredParks);
+                buildLetterBar();
+            } catch (e) {
+                document.getElementById('parkList').innerHTML =
+                    '<div class="no-catalog">Failed to load catalog. Run <code>build-catalog</code> first.</div>';
+            }
+        }
+
+        function buildLetterBar() {
+            const letters = new Set();
+            allParks.forEach(p => {
+                const first = p.name.charAt(0).toUpperCase();
+                if (/[A-Z]/.test(first)) letters.add(first);
+            });
+            const bar = document.getElementById('letterBar');
+            bar.innerHTML = '<span class="letter-btn' + (!activeLetter ? ' active' : '') +
+                '" onclick="filterByLetter(null)">All</span>';
+            [...letters].sort().forEach(l => {
+                bar.innerHTML += '<span class="letter-btn' + (activeLetter === l ? ' active' : '') +
+                    '" onclick="filterByLetter(\'' + l + '\')">' + l + '</span>';
+            });
+        }
+
+        function filterByLetter(letter) {
+            activeLetter = letter;
+            const searchVal = document.getElementById('parkSearchInput').value.trim();
+            if (searchVal) {
+                // If there's a search term, filter within search results
+                const term = searchVal.toLowerCase();
+                filteredParks = allParks.filter(p => p.name.toLowerCase().includes(term));
+            } else {
+                filteredParks = [...allParks];
+            }
+            if (letter) {
+                filteredParks = filteredParks.filter(p => p.name.charAt(0).toUpperCase() === letter);
+            }
+            renderParkList(filteredParks);
+            buildLetterBar();
+        }
+
+        function debouncedSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const q = document.getElementById('parkSearchInput').value.trim();
+                activeLetter = null;
+                if (q.length === 0) {
+                    filteredParks = [...allParks];
+                    renderParkList(filteredParks);
+                    buildLetterBar();
+                } else if (q.length >= 2) {
+                    // Client-side filter for speed
+                    const term = q.toLowerCase();
+                    filteredParks = allParks.filter(p => p.name.toLowerCase().includes(term));
+                    renderParkList(filteredParks);
+                    buildLetterBar();
+                }
+            }, 200);
+        }
+
+        function renderParkList(parks) {
+            const list = document.getElementById('parkList');
+            const info = document.getElementById('parkListInfo');
+            info.textContent = parks.length + ' park' + (parks.length !== 1 ? 's' : '');
+
+            if (parks.length === 0) {
+                list.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #8899aa;">No parks found.</div>';
+                return;
+            }
+
+            // Virtualize: only render visible items for large lists
+            const maxRender = 200;
+            const toRender = parks.slice(0, maxRender);
+            let html = '';
+            toRender.forEach(p => {
+                const sel = selectedPark && selectedPark.id === p.id && selectedPark.source === p.source;
+                const srcClass = 'source-' + p.source;
+                const srcLabel = p.source === 'recreation_gov' ? 'Rec.gov' : 'CA State';
+                html += '<div class="park-item' + (sel ? ' selected' : '') +
+                    '" onclick="selectPark(\'' + p.id + '\', \'' + p.source + '\')">' +
+                    '<span class="park-name">' + escapeHtml(p.name) + '</span>' +
+                    '<span class="source-badge ' + srcClass + '">' + srcLabel + '</span></div>';
+            });
+            if (parks.length > maxRender) {
+                html += '<div style="padding: 0.8rem; text-align: center; color: #8899aa; font-size: 0.8rem;">' +
+                    'Showing first ' + maxRender + ' of ' + parks.length + ' parks. Use search to narrow results.</div>';
+            }
+            list.innerHTML = html;
+        }
+
+        function selectPark(id, source) {
+            selectedPark = allParks.find(p => p.id === id && p.source === source) ||
+                           filteredParks.find(p => p.id === id && p.source === source);
+            if (!selectedPark) return;
+
+            // Update UI
+            parkChildren = null;
+            renderParkList(filteredParks);
+            document.getElementById('optionsPanel').style.display = 'block';
+            document.getElementById('selectedParkName').textContent = selectedPark.name;
+            document.getElementById('resultsPanel').style.display = 'none';
+
+            // Show drill-down panel and load children
+            const ddPanel = document.getElementById('drilldownPanel');
+            ddPanel.style.display = 'block';
+            document.getElementById('drilldownLoading').style.display = 'block';
+            document.getElementById('drilldownControls').style.display = 'none';
+            loadChildren(id, source);
+
+            document.getElementById('drilldownPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function loadChildren(parkId, source) {
+            try {
+                const resp = await fetch('/api/park-children/' + encodeURIComponent(source) + '/' + encodeURIComponent(parkId));
+                if (!resp.ok) throw new Error('Failed to load');
+                parkChildren = await resp.json();
+
+                const loading = document.getElementById('drilldownLoading');
+                const controls = document.getElementById('drilldownControls');
+                const facGroup = document.getElementById('facilityGroup');
+                const facSelect = document.getElementById('facilitySelect');
+
+                loading.style.display = 'none';
+                controls.style.display = 'block';
+
+                // Reset
+                facSelect.innerHTML = '<option value="">All campgrounds</option>';
+                document.getElementById('siteFilterInput').value = '';
+                allSiteItems = [];
+
+                if (source === 'reserve_california' && parkChildren.facilities) {
+                    facGroup.style.display = 'block';
+                    parkChildren.facilities.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.id;
+                        opt.textContent = f.name + ' (' + f.units.length + ' sites)';
+                        facSelect.appendChild(opt);
+                    });
+                    // All units from all facilities
+                    parkChildren.facilities.forEach(f => {
+                        f.units.forEach(u => {
+                            allSiteItems.push({
+                                name: f.name + ' \u2014 ' + u.name,
+                                type: u.type,
+                            });
+                        });
+                    });
+                } else if (parkChildren.sites) {
+                    facGroup.style.display = 'none';
+                    allSiteItems = parkChildren.sites.map(s => ({ name: s.name, type: s.type }));
+                }
+
+                renderSiteCheckboxes();
+            } catch (e) {
+                document.getElementById('drilldownLoading').innerHTML =
+                    '<span style="color: #ff8899;">Could not load sites. You can still search the entire park.</span>';
+                document.getElementById('drilldownControls').style.display = 'none';
+            }
+        }
+
+        function onFacilityChange() {
+            const facId = document.getElementById('facilitySelect').value;
+            document.getElementById('siteFilterInput').value = '';
+            allSiteItems = [];
+
+            if (!parkChildren || !parkChildren.facilities) return;
+
+            const facilities = facId
+                ? parkChildren.facilities.filter(f => f.id === facId)
+                : parkChildren.facilities;
+
+            facilities.forEach(f => {
+                f.units.forEach(u => {
+                    allSiteItems.push({
+                        name: f.name + ' \u2014 ' + u.name,
+                        type: u.type,
+                    });
+                });
+            });
+
+            renderSiteCheckboxes();
+        }
+
+        function renderSiteCheckboxes() {
+            const list = document.getElementById('siteCheckboxList');
+            const filter = document.getElementById('siteFilterInput').value.toLowerCase();
+
+            let html = '';
+            allSiteItems.forEach((s, i) => {
+                if (filter && !s.name.toLowerCase().includes(filter)) return;
+                html += '<label class="site-cb-item">' +
+                    '<input type="checkbox" data-site-name="' + escapeHtml(s.name) + '" onchange="updateSiteCount()">' +
+                    '<span>' + escapeHtml(s.name) + '</span>' +
+                    (s.type ? '<span class="site-cb-type">' + escapeHtml(s.type) + '</span>' : '') +
+                    '</label>';
+            });
+
+            if (!html) {
+                html = '<div style="padding: 0.8rem; text-align: center; color: #667; font-size: 0.8rem;">No sites match filter</div>';
+            }
+            list.innerHTML = html;
+            updateSiteCount();
+        }
+
+        function filterSiteCheckboxes() {
+            renderSiteCheckboxes();
+        }
+
+        function selectAllVisibleSites() {
+            document.querySelectorAll('#siteCheckboxList input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateSiteCount();
+        }
+
+        function clearAllSites() {
+            document.querySelectorAll('#siteCheckboxList input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateSiteCount();
+        }
+
+        function getSelectedSiteNames() {
+            const names = [];
+            document.querySelectorAll('#siteCheckboxList input[type="checkbox"]:checked').forEach(cb => {
+                names.push(cb.dataset.siteName);
+            });
+            return names;
+        }
+
+        function updateSiteCount() {
+            const selected = getSelectedSiteNames();
+            const el = document.getElementById('siteSelectedCount');
+            el.textContent = selected.length > 0 ? '(' + selected.length + ' selected)' : '(none selected = all)';
+        }
+
+        async function findNextAvailable() {
+            if (!selectedPark) return;
+
+            const btn = document.getElementById('findBtn');
+            const status = document.getElementById('searchStatus');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsBody = document.getElementById('resultsBody');
+
+            const checkedDays = [...document.querySelectorAll('.day-cb:checked')].map(cb => parseInt(cb.value));
+            const filterDays = checkedDays.length > 0 && checkedDays.length < 7 ? checkedDays : null;
+            const lookahead = parseInt(document.getElementById('lookahead').value);
+            const searchAllMonths = document.getElementById('searchAllMonths').checked;
+
+            btn.disabled = true;
+            foundCount = 0;
+            status.innerHTML = '<span class="spinner"></span>Starting search...';
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+            resultsPanel.style.display = 'none';
+            resultsBody.innerHTML = '';
+
+            const facilityId = document.getElementById('facilitySelect').value || null;
+            const selectedSites = getSelectedSiteNames();
+            const siteNames = selectedSites.length > 0 ? selectedSites : null;
+
+            const payload = JSON.stringify({
+                park_id: selectedPark.id,
+                source: selectedPark.source,
+                filter_days: filterDays,
+                lookahead_months: lookahead,
+                search_all_months: searchAllMonths,
+                facility_id: facilityId,
+                site_names: siteNames,
+            });
+
+            try {
+                const resp = await fetch('/api/next-available', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Search failed');
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    let eventType = null;
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            eventType = line.slice(7).trim();
+                        } else if (line.startsWith('data: ') && eventType) {
+                            handleSSE(eventType, JSON.parse(line.slice(6)));
+                            eventType = null;
+                        }
+                    }
+                }
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                status.style.color = '#e94560';
+            } finally {
+                btn.disabled = false;
+                progressBar.style.display = 'none';
+            }
+        }
+
+        function handleSSE(event, data) {
+            const status = document.getElementById('searchStatus');
+            const progressFill = document.getElementById('progressFill');
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsBody = document.getElementById('resultsBody');
+
+            switch (event) {
+                case 'status':
+                    status.innerHTML = '<span class="spinner"></span>' + escapeHtml(data.message);
+                    break;
+
+                case 'progress':
+                    status.innerHTML = '<span class="spinner"></span>' + escapeHtml(data.message);
+                    if (data.total_months > 0) {
+                        const pct = (data.months_checked / data.total_months * 100).toFixed(0);
+                        progressFill.style.width = pct + '%';
+                    }
+                    break;
+
+                case 'found':
+                    status.innerHTML = '';
+                    resultsPanel.style.display = 'block';
+                    resultsBody.innerHTML += renderFoundResult(data);
+                    if (resultsBody.children.length === 1) {
+                        resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    break;
+
+                case 'not_found':
+                    status.innerHTML = '';
+                    resultsPanel.style.display = 'block';
+                    resultsBody.innerHTML = '<div class="not-found">' + escapeHtml(data.message) + '</div>';
+                    break;
+
+                case 'error':
+                    resultsPanel.style.display = 'block';
+                    resultsBody.innerHTML += '<div class="errors">' + escapeHtml(data.message) + '</div>';
+                    break;
+
+                case 'done':
+                    status.innerHTML = '';
+                    break;
+            }
+        }
+
+        function renderFoundResult(data) {
+            foundCount++;
+            const weekendDays = new Set([0, 5, 6]); // Sun, Fri, Sat
+            let html = '<div class="found-card">';
+            html += '<div class="found-header">Availability found in ' + escapeHtml(data.month || '') + '</div>';
+
+            // Date chips
+            html += '<div class="found-dates">';
+            const dates = data.available_dates || [];
+            dates.forEach(dStr => {
+                const d = new Date(dStr + 'T12:00:00');
+                const dayOfWeek = d.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const label = dayNames[dayOfWeek] + ' ' + dStr.slice(5);
+                html += '<span class="date-chip' + (isWeekend ? ' weekend' : '') + '">' + label + '</span>';
+            });
+            html += '</div>';
+
+            // Site details
+            const sites = data.site_availability || [];
+            if (sites.length > 0) {
+                const previewCount = 5;
+                const uid = 'found-sites-' + foundCount;
+                html += '<div class="sites-section">';
+                html += '<div class="sites-label">Available Sites (' + sites.length + ')</div>';
+                sites.forEach((s, si) => {
+                    const siteDates = (s.available_dates || []).map(d => d.slice ? d.slice(5) : d);
+                    const typeTag = s.site_type
+                        ? '<span class="site-type-tag">' + escapeHtml(s.site_type) + '</span>'
+                        : '';
+                    const hidden = si >= previewCount ? ' style="display:none" data-expand="' + uid + '"' : '';
+                    html += '<div class="site-row"' + hidden + '>' +
+                        '<span class="site-name">' + escapeHtml(s.site_name) + '</span>' +
+                        typeTag +
+                        '<span class="site-dates">' + escapeHtml(siteDates.join(', ')) + '</span></div>';
+                });
+                if (sites.length > previewCount) {
+                    html += '<div class="expand-toggle" id="toggle-' + uid +
+                        '" onclick="toggleSites(\'' + uid + '\', ' + sites.length + ')">' +
+                        '<span class="expand-btn">Show all ' + sites.length + ' sites &#9662;</span></div>';
+                }
+                html += '</div>';
+            }
+
+            // Book link
+            if (selectedPark && selectedPark.reservation_url) {
+                html += '<a class="book-link" href="' + escapeHtml(selectedPark.reservation_url) +
+                    '" target="_blank" rel="noopener">Book &rarr;</a>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function toggleSites(uid, total) {
+            const rows = document.querySelectorAll('[data-expand="' + uid + '"]');
+            const toggle = document.getElementById('toggle-' + uid);
+            const isHidden = rows[0]?.style.display === 'none';
+            rows.forEach(r => r.style.display = isHidden ? 'grid' : 'none');
+            if (toggle) {
+                toggle.querySelector('.expand-btn').innerHTML = isHidden
+                    ? 'Show fewer &#9652;'
+                    : 'Show all ' + total + ' sites &#9662;';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (str == null) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
