@@ -47,12 +47,17 @@ cd campsite-companion
 python -m venv .venv
 ```
 
-Activate the virtual environment:
-- **macOS/Linux:** `source .venv/bin/activate`
-- **Windows (PowerShell):** `.venv\Scripts\Activate.ps1`
+Activate the virtual environment and install:
 
-Then install:
+**macOS/Linux:**
+```bash
+source .venv/bin/activate
+pip install -e .
 ```
+
+**Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
 pip install -e .
 ```
 
