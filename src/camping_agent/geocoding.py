@@ -1,5 +1,9 @@
+import logging
+
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
+
+logger = logging.getLogger(__name__)
 
 # Fallback lookup table for major California locations
 CA_CITIES: dict[str, tuple[float, float]] = {
@@ -33,8 +37,10 @@ def geocode(location: str) -> tuple[float, float]:
     """
     normalized = location.lower().strip()
     if normalized in CA_CITIES:
+        logger.debug("Geocode cache hit: %r", location)
         return CA_CITIES[normalized]
 
+    logger.debug("Geocode Nominatim lookup: %r", location)
     try:
         geolocator = Nominatim(user_agent="camping-reservation-agent")
         result = geolocator.geocode(f"{location}, California, USA")

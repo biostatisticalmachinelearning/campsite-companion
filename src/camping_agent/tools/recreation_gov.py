@@ -1,9 +1,12 @@
 import asyncio
+import logging
 import re
 from datetime import date, datetime
 
 import httpx
 from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
 
 from camping_agent.config import settings
 from camping_agent.geocoding import is_within_radius
@@ -217,6 +220,7 @@ class RateLimitError(Exception):
 
 async def _check_availability(facility_id: str, month_start: date) -> dict:
     """Check availability for a campground for a given month."""
+    logger.debug("Checking availability: facility=%s month=%s", facility_id, month_start.strftime("%Y-%m"))
     date_str = month_start.strftime("%Y-%m-%dT00:00:00.000Z")
     url = f"{settings.recgov_availability_url}/{facility_id}/month"
     async with _SEMAPHORE:
@@ -227,6 +231,7 @@ async def _check_availability(facility_id: str, month_start: date) -> dict:
                 headers={"User-Agent": "Mozilla/5.0 (compatible; camping-agent/0.1)"},
             )
             if resp.status_code == 429:
+                logger.warning("Recreation.gov rate limit hit (429) for facility %s", facility_id)
                 raise RateLimitError("Recreation.gov rate limit hit (429)")
             resp.raise_for_status()
             return resp.json()

@@ -2,10 +2,13 @@
 
 import asyncio
 import json
+import logging
 from datetime import date, timedelta
 from pathlib import Path
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from camping_agent.config import settings
 from camping_agent.geocoding import distance_miles
@@ -91,7 +94,7 @@ async def build_recgov_catalog() -> list[CatalogPark]:
 
     async with httpx.AsyncClient(timeout=30) as client:
         for i, (lat, lon) in enumerate(_RECGOV_GRID):
-            print(f"  Recreation.gov grid point {i + 1}/{len(_RECGOV_GRID)}: ({lat}, {lon})")
+            logger.debug("Recreation.gov grid point %d/%d: (%s, %s)", i + 1, len(_RECGOV_GRID), lat, lon)
             start = 0
             page_size = 50
             max_results = 500
@@ -134,13 +137,13 @@ async def build_recgov_catalog() -> list[CatalogPark]:
                         break
                     start += page_size
                 except Exception as e:
-                    print(f"    Error at offset {start}: {e}")
+                    logger.error("Error at grid point (%s, %s) offset %d: %s", lat, lon, start, e)
                     break
 
             await asyncio.sleep(0.3)
 
     parks.sort(key=lambda p: p.name.lower())
-    print(f"  Recreation.gov: {len(parks)} unique campgrounds")
+    logger.info("Recreation.gov: %d unique campgrounds", len(parks))
     return parks
 
 
@@ -156,7 +159,7 @@ async def build_rca_catalog() -> list[CatalogPark]:
 
     async with httpx.AsyncClient(timeout=30) as client:
         for i, (lat, lon) in enumerate(_RCA_GRID):
-            print(f"  ReserveCalifornia grid point {i + 1}/{len(_RCA_GRID)}: ({lat}, {lon})")
+            logger.debug("ReserveCalifornia grid point %d/%d: (%s, %s)", i + 1, len(_RCA_GRID), lat, lon)
             try:
                 resp = await client.post(
                     f"{RCA_API_BASE}/search/place",
@@ -197,16 +200,16 @@ async def build_rca_catalog() -> list[CatalogPark]:
                         reservation_url=f"https://www.reservecalifornia.com/park/{pid}",
                     ))
             except Exception as e:
-                print(f"    Error: {e}")
+                logger.error("Error at RCA grid point (%s, %s): %s", lat, lon, e)
 
             await asyncio.sleep(0.3)
 
     # Fetch facility metadata for each RCA park
-    print(f"  Fetching facility metadata for {len(parks)} RCA parks...")
+    logger.info("Fetching facility metadata for %d RCA parks...", len(parks))
     async with httpx.AsyncClient(timeout=30) as client:
         for i, park in enumerate(parks):
             if (i + 1) % 20 == 0:
-                print(f"    Facility fetch {i + 1}/{len(parks)}...")
+                logger.debug("Facility fetch %d/%d...", i + 1, len(parks))
             try:
                 resp = await client.post(
                     f"{RCA_API_BASE}/search/place",
@@ -237,11 +240,11 @@ async def build_rca_catalog() -> list[CatalogPark]:
                         for fac_id, fac in facilities_raw.items()
                     ]
             except Exception as e:
-                print(f"    Error fetching facilities for {park.name}: {e}")
+                logger.error("Error fetching facilities for %s: %s", park.name, e)
             await asyncio.sleep(0.3)
 
     parks.sort(key=lambda p: p.name.lower())
-    print(f"  ReserveCalifornia: {len(parks)} unique parks")
+    logger.info("ReserveCalifornia: %d unique parks", len(parks))
     return parks
 
 
@@ -254,11 +257,11 @@ def save_catalog(recgov: list[CatalogPark], rca: list[CatalogPark]) -> None:
 
     with open(recgov_path, "w") as f:
         json.dump([p.model_dump(mode="json") for p in recgov], f, indent=2)
-    print(f"  Saved {len(recgov)} Recreation.gov parks to {recgov_path}")
+    logger.info("Saved %d Recreation.gov parks to %s", len(recgov), recgov_path)
 
     with open(rca_path, "w") as f:
         json.dump([p.model_dump(mode="json") for p in rca], f, indent=2)
-    print(f"  Saved {len(rca)} ReserveCalifornia parks to {rca_path}")
+    logger.info("Saved %d ReserveCalifornia parks to %s", len(rca), rca_path)
 
 
 def load_catalog(q: str | None = None) -> list[CatalogPark]:
@@ -336,15 +339,19 @@ def search_catalog_by_location(
 
 async def build_all() -> None:
     """Build catalogs from both sources and save."""
-    print("Building park catalog...")
+    logger.info("Building park catalog...")
     recgov = await build_recgov_catalog()
     rca = await build_rca_catalog()
     save_catalog(recgov, rca)
-    print(f"Done! {len(recgov)} Recreation.gov + {len(rca)} ReserveCalifornia parks")
+    logger.info("Done! %d Recreation.gov + %d ReserveCalifornia parks", len(recgov), len(rca))
 
 
 def main():
     """CLI entry point for building the catalog."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     asyncio.run(build_all())
 
 

@@ -1,11 +1,14 @@
 import asyncio
 import json
+import logging
 import time
 from datetime import date, timedelta
 from pathlib import Path
 
 import httpx
 import uvicorn
+
+logger = logging.getLogger(__name__)
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from starlette.responses import StreamingResponse
@@ -78,10 +81,10 @@ async def _refresh_catalog_if_stale():
     async def _rebuild():
         try:
             from camping_agent.catalog import build_all
-            print("Catalog is stale (>14 days old), rebuilding in background...")
+            logger.warning("Catalog is stale (>14 days old), rebuilding in background...")
             await build_all()
         except Exception as e:
-            print(f"Background catalog rebuild failed: {e}")
+            logger.error("Background catalog rebuild failed: %s", e)
 
     asyncio.create_task(_rebuild())
 
@@ -111,8 +114,10 @@ async def api_park_children(source: str, park_id: str):
     if cached:
         ts, data = cached
         if time.time() - ts < _CHILDREN_TTL:
+            logger.debug("Children cache hit: %s", cache_key)
             return data
 
+    logger.debug("Children cache miss: %s", cache_key)
     if source == "recreation_gov":
         result = await _get_recgov_children(park_id)
     elif source == "reserve_california":
@@ -165,6 +170,7 @@ async def _get_rca_children(park_id: str) -> dict:
 
     if catalog_facility_ids is None:
         # Fallback: fetch facility list from place API
+        logger.info("RCA park %s: no catalog facilities, falling back to place API", park_id)
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 f"{RCA_API_BASE}/search/place",
@@ -195,6 +201,8 @@ async def _get_rca_children(park_id: str) -> dict:
         catalog_facility_ids = {
             str(fac_id): fac.get("Name", "") for fac_id, fac in facilities_raw.items()
         }
+    else:
+        logger.info("RCA park %s: using %d catalog facilities", park_id, len(catalog_facility_ids))
 
     # Fetch unit details via grid API for each facility
     from camping_agent.tools.reserve_california import _classify_unit
@@ -543,6 +551,16 @@ async def api_geocode(req: GeocodeRequest):
 @app.post("/api/search")
 async def api_search(req: SearchRequest):
     """Stream search results via Server-Sent Events as each facility is checked."""
+    sources = []
+    if req.search_recreation_gov:
+        sources.append("Recreation.gov")
+    if req.search_reserve_california:
+        sources.append("ReserveCalifornia")
+    logger.info(
+        "Search request: location=%r, dates=%s to %s, radius=%.0f mi, sources=%s",
+        req.location, req.start_date, req.end_date, req.radius_miles, ", ".join(sources),
+    )
+
     # Geocode up front (fast) so we can fail early
     try:
         lat, lon = geocode(req.location)
@@ -613,6 +631,7 @@ async def _stream_recgov(
     try:
         yield _sse("status", {"message": "Searching Recreation.gov campgrounds..."})
         campgrounds = search_catalog_by_location(lat, lon, radius, source=SearchSource.RECREATION_GOV)
+        logger.info("Recreation.gov catalog: %d parks within %.0f mi", len(campgrounds), radius)
         yield _sse("status", {
             "message": f"Found {len(campgrounds)} campgrounds within {radius} mi, checking availability..."
         })
@@ -713,6 +732,7 @@ async def _stream_rca(
         from camping_agent.tools.reserve_california import search_rca_api
         # Use catalog for park discovery to skip live search API calls
         catalog_parks = search_catalog_by_location(lat, lon, radius, source=SearchSource.RESERVE_CALIFORNIA)
+        logger.info("ReserveCalifornia catalog: %d parks within %.0f mi", len(catalog_parks), radius)
         count = 0
         async for result in search_rca_api(
             lat, lon, radius, sd, ed, num_people, exclude, include,
@@ -733,7 +753,11 @@ async def _stream_rca(
 
 
 def main():
-    print("Starting Camping Reservation Search at http://localhost:8000")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    logger.info("Starting Camping Reservation Search at http://localhost:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

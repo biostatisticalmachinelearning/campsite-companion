@@ -1,9 +1,12 @@
 import asyncio
+import logging
 from datetime import date, timedelta
 from typing import AsyncIterator
 
 import httpx
 from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
 
 from camping_agent.geocoding import distance_miles
 from camping_agent.models import Campsite, SearchSource, SiteAvailability
@@ -129,6 +132,7 @@ async def search_rca_api(
     async with httpx.AsyncClient(timeout=30) as client:
         # Build park list: either from catalog or from live API search
         if catalog_parks is not None:
+            logger.info("Using %d catalog parks for RCA search", len(catalog_parks))
             parks_to_check = []
             for cp in catalog_parks:
                 parks_to_check.append({
@@ -142,6 +146,7 @@ async def search_rca_api(
                 })
         else:
             # Step 1: Search for nearby parks with availability
+            logger.info("No catalog parks provided, searching RCA place API")
             search_resp = await client.post(
                 f"{RCA_API_BASE}/search/place",
                 json={
@@ -207,8 +212,10 @@ async def search_rca_api(
                 # Use catalog facility IDs — skip place API call entirely.
                 # We only need the facility IDs to call grid API.
                 facility_ids = {str(f["id"]): f["name"] for f in catalog_facs}
+                logger.info("Park %s (%s): using %d catalog facilities", name, place_id, len(facility_ids))
             else:
                 # No catalog data — query park directly to get Facilities
+                logger.info("Park %s (%s): falling back to place API for facilities", name, place_id)
                 try:
                     place_resp = await client.post(
                         f"{RCA_API_BASE}/search/place",
@@ -251,6 +258,7 @@ async def search_rca_api(
             for fac_id, fac_name in facility_ids.items():
 
                 try:
+                    logger.debug("RCA grid API: place=%s facility=%s", place_id, fac_id)
                     grid_resp = await client.post(
                         f"{RCA_API_BASE}/search/grid",
                         json={
@@ -311,8 +319,10 @@ async def search_rca_api(
                         all_dates.update(avail_dates)
 
             if not all_dates:
+                logger.debug("Park %s (%s): no available sites", name, place_id)
                 continue
 
+            logger.info("Park %s (%s): %d facilities checked, %d sites found", name, place_id, len(facility_ids), len(all_site_avail))
             yield Campsite(
                 name=name,
                 facility_id=str(place_id),
