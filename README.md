@@ -19,31 +19,48 @@ A web app that searches for available campsites across **Recreation.gov** (natio
 
 ## Quick Start
 
-There's a setup script that handles everything:
+Setup scripts handle creating a virtual environment, installing dependencies, and optionally building the park catalog.
 
+**macOS/Linux:**
 ```bash
-git clone <repo-url>
+git clone https://github.com/biostatisticalmachinelearning/campsite-companion.git
 cd campsite-companion
 bash setup.sh
 ```
 
-The script creates a virtual environment, installs dependencies, sets up your `.env` file, and optionally builds the park catalog. Or follow the manual steps below:
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/biostatisticalmachinelearning/campsite-companion.git
+cd campsite-companion
+.\setup.ps1
+```
+
+> **Note:** If you get an execution policy error on Windows, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` first.
+
+## Manual Setup
 
 ### 1. Clone and install
 
-```bash
-git clone <repo-url>
+```
+git clone https://github.com/biostatisticalmachinelearning/campsite-companion.git
 cd campsite-companion
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+Activate the virtual environment:
+- **macOS/Linux:** `source .venv/bin/activate`
+- **Windows (PowerShell):** `.venv\Scripts\Activate.ps1`
+
+Then install:
+```
 pip install -e .
 ```
 
 ### 2. Build the park catalog
 
-This step downloads the list of all parks/campgrounds from both Recreation.gov and ReserveCalifornia, including facility metadata for California state parks. It takes about 5 minutes and only needs to be run once (the server will automatically rebuild it in the background if it becomes older than 14 days):
+This downloads the list of all parks/campgrounds from both Recreation.gov and ReserveCalifornia, including facility metadata for California state parks. It takes about 5 minutes and only needs to be run once (the server will automatically rebuild it in the background if it becomes older than 14 days):
 
-```bash
+```
 build-catalog
 ```
 
@@ -53,7 +70,7 @@ This creates two JSON files in the `data/` directory:
 
 ### 3. Start the web server
 
-```bash
+```
 camping-web
 ```
 
@@ -91,7 +108,8 @@ The search checks one month at a time and stops as soon as it finds availability
 campsite-companion/
   .env.example          # Template for environment variables
   pyproject.toml        # Python package config and dependencies
-  setup.sh              # Automated setup script
+  setup.sh              # Automated setup script (macOS/Linux)
+  setup.ps1             # Automated setup script (Windows)
   data/                 # Park catalog JSON files (generated, gitignored)
   src/camping_agent/
     catalog.py          # Park catalog builder and location-based search
